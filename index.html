@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Admin Ticket Templates</title>
+
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 28px 40px;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    header p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    main {
+      padding: 32px 40px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    input,
+    select {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 15px;
+      min-width: 240px;
+    }
+
+    .template-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
+    .template-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      text-align: left;
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
+
+    .template-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .template-card h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .template-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #3730a3;
+      font-size: 12px;
+    }
+
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.48);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 10;
+    }
+
+    .modal {
+      background: var(--card);
+      width: 100%;
+      max-width: 780px;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    }
+
+    .modal h2 {
+      margin: 0 0 12px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 420px;
+      margin-top: 10px;
+      padding: 14px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      resize: vertical;
+      white-space: pre-wrap;
+      line-height: 1.45;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 16px;
+      font-size: 15px;
+      cursor: pointer;
+      background: white;
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    button.primary:hover {
+      background: var(--accent-dark);
+    }
+
+    .empty {
+      display: none;
+      padding: 24px;
+      background: var(--card);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 600px) {
+      header,
+      main {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+
+      input,
+      select {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Admin Ticket Templates</h1>
+    <p>Click a template, review it, then copy it into your ticketing system.</p>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <input id="searchInput" type="search" placeholder="Search templates..." oninput="renderTemplates()" />
+
+      <select id="categoryFilter" onchange="renderTemplates()">
+        <option value="All">All categories</option>
+      </select>
+    </div>
+
+    <div id="templateGrid" class="template-grid"></div>
+
+    <div id="emptyState" class="empty">
+      No templates match your search.
+    </div>
+  </main>
+
+  <div id="modalBackdrop" class="modal-backdrop" onclick="handleBackdropClick(event)">
+    <div class="modal">
+      <h2 id="modalTitle"></h2>
+      <textarea id="templateText" readonly></textarea>
+
+      <div class="modal-actions">
+        <button onclick="closeModal()">Close</button>
+        <button class="primary" onclick="copyTemplate()">Copy Template</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const templates = [
+      {
+        title: "KOS Ban / Come to Discord",
+        category: "Ban Appeal",
+        description: "Use when a new player was banned for KOS and needs to review the rules.",
+        text: `Hello there,
+
+You were removed from the server for violating our KOS rules. Please note that this is not a typical Rust server.
+
+We are a limited PvP server. If you're looking for the kind of gameplay seen on YouTube where you can attack anyone at any time you may want to try out Official servers instead such as Rustopia.
+
+On our server, PvP is only allowed in specific situations:
+
+Inside the no-build zones around monuments
+
+During raids
+
+Around airdrops
+
+At heli crash sites
+
+Killing/damaging players in random areas outside of those scenarios is not allowed.
+
+Since you’re new, we’re willing to lift your ban, but we need you to review and understand our rules before returning. Please read them carefully at: cali.gg/rules
+
+Let us know once you’ve reviewed them and if you have any questions. This ban was not intended as a punishment it's to ensure you know our rules before we let you back on.`
+      },
+      {
+        title: "ToS Autoclicker",
+        category: "Ban Appeal",
+        description: "Use when a player was banned for using an autoclicker or automation software.",
+        text: `Hello,
+
+You were removed from the server for using an autoclicker. This is a violation of both our server rules and Facepunch’s Terms of Service.
+
+You can review our server rules at: Cali.gg/rules
+And Facepunch’s ToS here: https://facepunch.com/legal/tos
+
+Relevant section from Facepunch’s ToS – 3. RULES FOR USING THE FACEPUNCH SERVICES:
+v. Cheating:
+"Create, use, make available and/or distribute cheats, exploits, automation software, robots, bots, hacks, spiders, spyware, scripts, trainers, extraction tools, mining or other software that interact with or affect the Facepunch Services in any way."
+
+As a Facepunch-affiliated server, we are required to enforce these policies. That said, since you’ve had no previous issues on the server, I’m willing to lift your ban. However, if you continue to use any automation software such as an autoclicker, you will be removed for at least one month or longer.
+
+Please review the server rules if you haven’t already. If you agree to these terms, let me know and we will lift the ban.`
+      },
+      {
+        title: "Global Chat ToS",
+        category: "Ban Appeal",
+        description: "Use when a player was banned for a global chat Terms of Service violation.",
+        text: `Hello,
+
+You were banned due to what you said in global chat. While a mute was issued initially, no admin was available at the time, so a ban was placed to ensure we could speak with you directly.
+
+It does not matter if the comment was directed at a friend or meant as a joke. It was said in global chat, where all our players could see it. That makes it a violation of both our server rules and Facepunch’s Terms of Service.
+
+You can review the Terms of Service here:
+https://facepunch.com/legal/tos
+
+Relevant section:
+Rules for Using the Facepunch Services
+ix. Conduct
+Do or say anything unlawful, racist, harassing, threatening, abusive, hateful, xenophobic, sexist, discriminatory, defamatory, obscene, invasive of the privacy of another person or otherwise offensive. This includes in any chat or communication with users.
+
+This type of behavior is not allowed on our server. If you want your ban to be lifted, we ask that you don't use such language in the server again and review our server rules at cali.gg/rules`
+      },
+      {
+        title: "ToS No Unban / Generic Chance",
+        category: "Ban Appeal",
+        description: "Use for a general Terms of Service ban appeal response.",
+        text: `Hello,
+
+You were banned due to a Terms of Service violation. What occurred was a breach of both our server rules and Facepunch’s Terms of Service. As a community server, we are required to enforce Facepunch’s ToS.
+
+You can review the Terms of Service here:
+https://facepunch.com/legal/tos
+
+Relevant section:
+Rules for Using the Facepunch Services
+ix. Conduct
+Do or say anything unlawful, racist, harassing, threatening, abusive, hateful, xenophobic, sexist, discriminatory, defamatory, obscene, invasive of the privacy of another person or otherwise offensive. This includes in any chat, drawings or communication with users. So tell us why should we unban you?`
+      },
+      {
+        title: "Weightclass Group Raiding Solo Violation",
+        category: "Ban Appeal",
+        description: "Use when a group raided a solo/keylocked base.",
+        text: `Hello,
+
+You were removed from the server for violating our weight class rules.
+
+This ban is in place so we can review the rules with you and ensure you understand them before being allowed back into the server. Since you appear to be fairly new, you may not yet be familiar with all of our rules.
+
+In this case, you were observed raiding a solo, keylocked base. Your group uses a code lock, and groups are only permitted to raid other code locked bases. Keylocked players may only raid other keylocked bases. Solos raid solos, and groups raid groups.
+
+Once you have reviewed the rules, we will lift the ban.
+
+You can review the full server rules here: Cali.gg/rules`
+      },
+      {
+        title: "Weightclass Solo Raiding Group Violation",
+        category: "Ban Appeal",
+        description: "Use when a solo/keylocked player raided a group/codelocked base.",
+        text: `Hello,
+
+You were removed from the server for violating our weight class rules.
+
+This ban is in place so we can review the rules with you and ensure you understand them before being allowed back into the server. Since you appear to be fairly new, you may not yet be familiar with all of our rules.
+
+In this case, you were observed raiding a group, codelocked base. Your base uses a keylock, and keylocks are only permitted to raid other key locked bases. Codelocked players may only raid other codelocked bases. Solos raid solos, and groups raid groups.
+
+Once you have reviewed the rules, we will lift the ban.
+
+You can review the full server rules here: Cali.gg/rules`
+      },
+      {
+        title: "Killed in a PvP Zone",
+        category: "KOS Report",
+        description: "Use when the reported kill happened inside a valid monument PvP zone.",
+        text: `Hello there,
+
+We looked into this and found that you were killed inside the no-build zone of a monument, which makes this a valid kill. While we do have a warning system in place for entering PVP/PVE zones, it's not fully accurate and we don't base KOS decisions on it alone.
+
+The PVP zone is defined by the no-build area around named monuments (except for Abandoned Cabins). If you take out a building plan or sleeping bag near a monument, you'll see a large red ring where you can’t build or place items that's what we use as the marker for the PVP zone.
+
+We also have more details about the warning system here:
+https://discord.com/channels/766322640344186921/782178483887407104/1327274206009888920
+
+Did you have any questions?`
+      },
+      {
+        title: "KOS Player Banned / No Admins Available",
+        category: "KOS Report",
+        description: "Use when one KOS player was banned but staff are not available for loot return yet.",
+        text: `Hello there,
+
+That player was removed from the server and appears to be fairly new. They will need to contact us and review the rules before they can rejoin.
+
+Unfortunately, there are no staff available at the moment to return your loot, but once someone is, they will respond here and get your items back to you.
+
+Please note if you dropped any weapons or tools from your hands, and let us know if you had a backpack, including whether it was small or large. If you happen to have any screenshots or video showing its contents, that would be helpful.`
+      },
+      {
+        title: "Team Banned for KOS / No Admins Available",
+        category: "KOS Report",
+        description: "Use when a player and their team were banned but staff are not available for loot return yet.",
+        text: `Hello there,
+
+That player and their team have been removed from the server.
+
+Unfortunately, no staff are available at the moment to return your loot, but once someone is, they’ll respond here and get your items back to you.
+
+Please let us know if you dropped any weapons or tools from your hands, and whether you had a backpack (small or large). If you have any screenshots or video showing its contents, that would be helpful.`
+      },
+      {
+        title: "Killed in a Raid Zone",
+        category: "KOS Report",
+        description: "Use when the player was killed inside an active raid zone.",
+        text: `Hello there, we looked into this and unfortunately you were killed within an active raid zone, making this a valid kill. Raiders are allowed to attack any player within sight of a raid if they consider them a possible threat or counter. Some players will even attack anyone nearby, regardless of whether they appear to be farming roads or nodes.
+
+You may or may not have received a warning when entering the raid zone, as it is distance-based and not always guaranteed to trigger.
+
+If you are ever unsure, always feel free to submit a ticket so we can review it for you. Did you have any questions?`
+      },
+      {
+        title: "Raided Within Weightclass",
+        category: "Raiding",
+        description: "Use when the reviewed raid did not violate weight class rules.",
+        text: `Hello there, we looked into this and found no violation of weight class in the raid on your base. If you are ever unsure, please feel free to submit a ticket and we’ll review it for you.`
+      },
+      {
+        title: "Cheater Report",
+        category: "Cheat Report",
+        description: "Use when responding to a player who submitted a cheating report.",
+        text: `Hello there, and thanks for the cheater report. If you believe a player is cheating, please make sure to submit an F7 report directly to Facepunch so their team can review it if you have not done so already.
+
+On our end, we will observe the player whenever possible, and if we notice anything suspicious, we will take appropriate action. If you have any evidence you would like to share with us, please feel free to attach it to this ticket.`
+      }
+    ];
+
+    const templateGrid = document.getElementById("templateGrid");
+    const categoryFilter = document.getElementById("categoryFilter");
+    const searchInput = document.getElementById("searchInput");
+    const emptyState = document.getElementById("emptyState");
+
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    const modalTitle = document.getElementById("modalTitle");
+    const templateText = document.getElementById("templateText");
+
+    function populateCategories() {
+      const categories = [...new Set(templates.map(template => template.category))].sort();
+
+      categories.forEach(category => {
+        const option = document.createElement("option");
+        option.value = category;
+        option.textContent = category;
+        categoryFilter.appendChild(option);
+      });
+    }
+
+    function renderTemplates() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const selectedCategory = categoryFilter.value;
+
+      templateGrid.innerHTML = "";
+
+      const filteredTemplates = templates.filter(template => {
+        const matchesSearch =
+          template.title.toLowerCase().includes(searchTerm) ||
+          template.description.toLowerCase().includes(searchTerm) ||
+          template.category.toLowerCase().includes(searchTerm) ||
+          template.text.toLowerCase().includes(searchTerm);
+
+        const matchesCategory =
+          selectedCategory === "All" || template.category === selectedCategory;
+
+        return matchesSearch && matchesCategory;
+      });
+
+      filteredTemplates.forEach(template => {
+        const card = document.createElement("div");
+        card.className = "template-card";
+        card.onclick = () => openModal(template);
+
+        card.innerHTML = `
+          <h2>${template.title}</h2>
+          <p>${template.description}</p>
+          <span class="badge">${template.category}</span>
+        `;
+
+        templateGrid.appendChild(card);
+      });
+
+      emptyState.style.display = filteredTemplates.length ? "none" : "block";
+    }
+
+    function openModal(template) {
+      modalTitle.textContent = template.title;
+      templateText.value = template.text;
+      modalBackdrop.style.display = "flex";
+    }
+
+    function closeModal() {
+      modalBackdrop.style.display = "none";
+    }
+
+    function handleBackdropClick(event) {
+      if (event.target === modalBackdrop) {
+        closeModal();
+      }
+    }
+
+    async function copyTemplate() {
+      try {
+        await navigator.clipboard.writeText(templateText.value);
+        alert("Template copied.");
+      } catch (error) {
+        templateText.select();
+        document.execCommand("copy");
+        alert("Template copied.");
+      }
+    }
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        closeModal();
+      }
+    });
+
+    populateCategories();
+    renderTemplates();
+  </script>
+</body>
+</html>
